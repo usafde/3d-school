@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>3D Библиотека - Просмотр моделей</title>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            touch-action: none;
+        }
+        
+        /* Основная информация */
+        #info {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            z-index: 100;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 20px;
+            pointer-events: none;
+            font-size: 12px;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            border-left: 3px solid #ff6b6b;
+            max-width: 55%;
+            z-index: 200;
+        }
+        
+        #info span {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        #currentModelName {
+            font-weight: 600;
+        }
+        
+        #subModeInfo {
+            font-size: 10px;
+            opacity: 0.9;
+            margin-top: 2px;
+        }
+        
+        /* Панель управления */
+        #controls {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            right: 12px;
+            z-index: 100;
+            background: rgba(20,20,30,0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 28px;
+            padding: 10px 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            pointer-events: auto;
+            font-family: system-ui, -apple-system, sans-serif;
+            border: 0.5px solid rgba(255,255,255,0.15);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        
+        button {
+            background: #ff6b6b;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-size: 13px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            font-family: inherit;
+            touch-action: manipulation;
+            min-height: 40px;
+        }
+        
+        button:active {
+            transform: scale(0.96);
+            background: #ff5252;
+        }
+        
+        button.secondary {
+            background: #4a6fa5;
+        }
+        
+        button.secondary:active {
+            background: #3a5a8c;
+        }
+        
+        button.success {
+            background: #28a745;
+        }
+        
+        button.success:active {
+            background: #218838;
+        }
+        
+        button.warning {
+            background: #ff9800;
+        }
+        
+        button.warning:active {
+            background: #f57c00;
+        }
+        
+        button.danger {
+            background: #dc3545;
+        }
+        
+        button.danger:active {
+            background: #c82333;
+        }
+        
+        .file-label {
+            background: #2c3e66;
+            padding: 8px 16px;
+            border-radius: 40px;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+            font-size: 13px;
+            font-family: inherit;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 40px;
+            box-sizing: border-box;
+        }
+        
+        .file-label:active {
+            background: #1e2a4a;
+            transform: scale(0.98);
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .status {
+            color: #aaa;
+            font-size: 10px;
+            background: rgba(0,0,0,0.4);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-family: monospace;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        /* Панель списка моделей */
+        .models-panel {
+            position: absolute;
+            left: 12px;
+            top: 70px;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 10px;
+            width: 200px;
+            max-width: calc(100% - 24px);
+            max-height: 40%;
+            overflow-y: auto;
+            z-index: 100;
+            pointer-events: auto;
+            font-size: 12px;
+            border: 0.5px solid rgba(255,255,255,0.15);
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        
+        .models-panel h4 {
+            margin: 0 0 8px 0;
+            color: #ffaa66;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+        }
+        
+        .model-item {
+            padding: 8px 10px;
+            margin: 4px 0;
+            background: rgba(255,255,255,0.08);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.15s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .model-item:active {
+            background: rgba(255,170,102,0.3);
+            transform: scale(0.98);
+        }
+        
+        .model-item.active {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .model-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 11px;
+        }
+        
+        .model-parts-count {
+            font-size: 9px;
+            opacity: 0.7;
+            background: rgba(0,0,0,0.4);
+            padding: 2px 6px;
+            border-radius: 20px;
+        }
+        
+        .delete-model {
+            background: rgba(220,53,69,0.9);
+            border: none;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 10px;
+            padding: 4px 10px;
+            min-height: auto;
+            box-shadow: none;
+        }
+        
+        .delete-model:active {
+            transform: scale(0.95);
+        }
+        
+        /* Панель списка частей */
+        .parts-panel {
+            position: absolute;
+            right: 12px;
+            top: 70px;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 10px;
+            width: 180px;
+            max-width: calc(100% - 24px);
+            max-height: 40%;
+            overflow-y: auto;
+            z-index: 100;
+            pointer-events: auto;
+            font-size: 11px;
+            border: 0.5px solid rgba(255,255,255,0.15);
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        
+        .parts-panel h4 {
+            margin: 0 0 8px 0;
+            color: #ffaa66;
+            font-size: 11px;
+        }
+        
+        .part-item {
+            padding: 6px 8px;
+            margin: 3px 0;
+            background: rgba(255,255,255,0.08);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.15s;
+            color: #ddd;
+            font-size: 10px;
+        }
+        
+        .part-item:active {
+            background: rgba(255,170,102,0.3);
+            transform: scale(0.98);
+        }
+        
+        .part-item.active {
+            background: #ff6b6b;
+            color: white;
+        }
+        
+        .part-item small {
+            font-size: 8px;
+            opacity: 0.6;
+        }
+        
+        .back-btn {
+            background: #ff6b6b;
+            margin-bottom: 10px;
+            width: 100%;
+            padding: 6px;
+            font-size: 11px;
+            border-radius: 30px;
+            min-height: auto;
+        }
+        
+        @media (max-width: 600px) {
+            .models-panel { width: 160px; max-height: 35%; }
+            .parts-panel { width: 150px; max-height: 35%; }
+            .model-name { font-size: 10px; }
+            .status { display: none; }
+            button, .file-label { padding: 6px 12px; font-size: 12px; min-height: 36px; }
+            #controls { gap: 8px; padding: 8px 12px; }
+        }
+        
+        @media (max-width: 480px) {
+            .models-panel, .parts-panel { display: none; }
+        }
+        
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.3);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #ffaa66;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        <span id="currentModelName">Нет модели</span>
+        <span id="subModeInfo" style="font-size: 10px; color: #ffaa66;"></span>
+    </div>
+    <div id="controls">
+        <label class="file-label">
+            📁 Добавить
+            <input type="file" id="fileInput" accept=".glb,.gltf">
+        </label>
+        <button id="resetViewBtn">🎥 Сброс</button>
+        <button id="showAllBtn" class="success" style="display: none;">🔆 Всё</button>
+        <button id="clearAllBtn" class="danger">🗑️ Всё</button>
+        <span class="status" id="statusMsg">Готов</span>
+    </div>
+    
+    <!-- Панель списка моделей -->
+    <div class="models-panel" id="modelsPanel">
+        <h4>📚 Модели <span id="modelsCount">0</span></h4>
+        <div id="modelsListContainer"></div>
+    </div>
+    
+    <!-- Панель списка частей текущей модели -->
+    <div class="parts-panel" id="partsPanel" style="display: none;">
+        <button id="backToFullBtn" class="back-btn">◀ К целой</button>
+        <h4>🧩 Части:</h4>
+        <div id="partsContainer"></div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+        import { Raycaster } from 'three';
+
+        // --- Инициализация сцены ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a2a);
+        scene.fog = new THREE.FogExp2(0x0a0a2a, 0.006);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(10, 6, 10);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        document.body.appendChild(renderer.domElement);
+
+        // --- Орбит контроллер ---
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.rotateSpeed = 1.0;
+        controls.zoomSpeed = 1.0;
+        controls.panSpeed = 0.8;
+        controls.enableZoom = true;
+        controls.enablePan = true;
+        controls.touchRotate = true;
+        controls.touchZoom = true;
+        controls.target.set(0, 0.5, 0);
+
+        // --- Освещение (упрощённое для производительности) ---
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.7);
+        scene.add(ambientLight);
+        
+        const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        mainLight.position.set(10, 6, 12);
+        mainLight.castShadow = true;
+        mainLight.receiveShadow = true;
+        mainLight.shadow.mapSize.width = 512;
+        mainLight.shadow.mapSize.height = 512;
+        mainLight.shadow.camera.near = 0.5;
+        mainLight.shadow.camera.far = 8;
+        scene.add(mainLight);
+        
+        const fillLight = new THREE.PointLight(0x4466cc, 0.35);
+        fillLight.position.set(-1, 1, 2);
+        scene.add(fillLight);
+        
+        const backLight = new THREE.PointLight(0xffaa66, 0.35);
+        backLight.position.set(1, 1.5, -2);
+        scene.add(backLight);
+        
+        // --- Вспомогательные элементы (упрощены) ---
+        const gridHelper = new THREE.GridHelper(1000, 200, 0x88aaff, 0x335588);
+        gridHelper.position.y = -0.8;
+        gridHelper.material.transparent = true;
+        gridHelper.material.opacity = 0.3;
+        scene.add(gridHelper);
+        
+        // --- Структура данных ---
+        let modelsLibrary = [];
+        let currentModelId = null;
+        let currentModelGroup = null;
+        let allParts = [];
+        let soloMode = false;
+        let currentSoloPart = null;
+        
+        const loader = new GLTFLoader();
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.4.1/');
+        loader.setDRACOLoader(dracoLoader);
+        
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        
+        const STORAGE_KEY = '3DModelsLibraryV3';
+        
+        // --- Вспомогательные функции ---
+        function dataURLToBlob(dataUrl, mimeType) {
+            const base64 = dataUrl.split(',')[1];
+            const binaryString = atob(base64);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return new Blob([bytes], { type: mimeType });
+        }
+        
+        function normalizeModelGroup(group) {
+            const box = new THREE.Box3().setFromObject(group);
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const targetSize = 2.2;
+            let scale = targetSize / maxDim;
+            scale = Math.min(scale, 2.5);
+            if (scale < 0.2) scale = 0.2;
+            
+            group.scale.set(scale, scale, scale);
+            group.updateMatrixWorld();
+            
+            const newBox = new THREE.Box3().setFromObject(group);
+            const newMinY = newBox.min.y;
+            const newCenter = newBox.getCenter(new THREE.Vector3());
+            const offsetY = -0.7 - newMinY;
+            group.position.set(-newCenter.x * scale, offsetY, -newCenter.z * scale);
+        }
+        
+        function extractPartsInfo(group) {
+            const parts = [];
+            group.traverse((child) => {
+                if (child.isMesh) {
+                    parts.push({
+                        name: child.name || `Part_${parts.length + 1}`,
+                        vertexCount: child.geometry.attributes.position?.count || 0
+                    });
+                }
+            });
+            return parts;
+        }
+        
+        function saveLibraryToStorage() {
+            try {
+                const toSave = modelsLibrary.map(m => ({
+                    id: m.id,
+                    name: m.name,
+                    dataUrl: m.dataUrl,
+                    fileType: m.fileType,
+                    partsNames: m.partsNames,
+                    timestamp: m.timestamp
+                }));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+                return true;
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+                if (error.name === 'QuotaExceededError') {
+                    document.getElementById('statusMsg').textContent = '⚠️ Файл слишком большой';
+                }
+                return false;
+            }
+        }
+        
+        async function loadGroupFromDataURL(dataUrl, fileType) {
+            return new Promise((resolve, reject) => {
+                const blob = dataURLToBlob(dataUrl, fileType);
+                const url = URL.createObjectURL(blob);
+                
+                loader.load(url, (gltf) => {
+                    const group = gltf.scene;
+                    group.traverse((node) => {
+                        if (node.isMesh) {
+                            node.castShadow = true;
+                            node.receiveShadow = true;
+                            if (node.material) {
+                                if (Array.isArray(node.material)) {
+                                    node.material.forEach(mat => {
+                                        if (mat) {
+                                            mat.roughness = mat.roughness !== undefined ? mat.roughness : 0.5;
+                                            mat.metalness = mat.metalness !== undefined ? mat.metalness : 0.2;
+                                        }
+                                    });
+                                } else {
+                                    node.material.roughness = node.material.roughness !== undefined ? node.material.roughness : 0.5;
+                                    node.material.metalness = node.material.metalness !== undefined ? node.material.metalness : 0.2;
+                                }
+                            }
+                        }
+                    });
+                    normalizeModelGroup(group);
+                    URL.revokeObjectURL(url);
+                    resolve(group);
+                }, undefined, (error) => {
+                    URL.revokeObjectURL(url);
+                    reject(error);
+                });
+            });
+        }
+        
+        // Переключение на следующую модель (ТОЛЬКО если есть несколько моделей)
+        function switchToNextModel() {
+            if (modelsLibrary.length <= 1) return false;
+            
+            const currentIndex = modelsLibrary.findIndex(m => m.id === currentModelId);
+            const nextIndex = (currentIndex + 1) % modelsLibrary.length;
+            showModelById(modelsLibrary[nextIndex].id);
+            return true;
+        }
+        
+        async function showModelById(modelId) {
+            const model = modelsLibrary.find(m => m.id === modelId);
+            if (!model) return false;
+            
+            if (currentModelGroup) {
+                scene.remove(currentModelGroup);
+            }
+            
+            try {
+                currentModelGroup = await loadGroupFromDataURL(model.dataUrl, model.fileType);
+                scene.add(currentModelGroup);
+                currentModelId = model.id;
+                
+                // Извлекаем части (меши) для текущей модели
+                allParts = [];
+                currentModelGroup.traverse((child) => {
+                    if (child.isMesh) {
+                        allParts.push({
+                            mesh: child,
+                            originalName: child.name || `Part_${allParts.length + 1}`,
+                            originalPosition: child.position.clone(),
+                            originalScale: child.scale.clone()
+                        });
+                    }
+                });
+                
+                // Обновляем UI
+                document.getElementById('currentModelName').textContent = model.name.length > 30 ? model.name.substring(0, 27) + '...' : model.name;
+                document.getElementById('modelsCount').innerHTML = modelsLibrary.length;
+                updateModelsListUI();
+                
+                // Показываем панель частей если есть более 1 части
+                const partsPanel = document.getElementById('partsPanel');
+                if (allParts.length > 1) {
+                    partsPanel.style.display = 'block';
+                    updatePartsListUI(null);
+                } else {
+                    partsPanel.style.display = 'none';
+                }
+                
+                // Сброс режима
+                soloMode = false;
+                currentSoloPart = null;
+                document.getElementById('subModeInfo').innerHTML = '';
+                document.getElementById('showAllBtn').style.display = 'none';
+                
+                // Фокусируем камеру
+                const box = new THREE.Box3().setFromObject(currentModelGroup);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const distance = maxDim * 1.8;
+                camera.position.set(center.x + distance * 0.8, center.y + distance * 0.6, center.z + distance);
+                controls.target.copy(center);
+                controls.update();
+                
+                const partsCount = allParts.length;
+                document.getElementById('statusMsg').textContent = `📦 ${model.name} (${partsCount} ч.)`;
+                return true;
+                
+            } catch (error) {
+                console.error('Ошибка загрузки модели:', error);
+                document.getElementById('statusMsg').textContent = `❌ Ошибка загрузки`;
+                return false;
+            }
+        }
+        
+        async function addModelFromFile(file) {
+            const fileName = file.name;
+            const fileType = file.type || 'application/octet-stream';
+            
+            document.getElementById('statusMsg').textContent = `⏳ Загрузка...`;
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const dataUrl = e.target.result;
+                
+                try {
+                    const tempGroup = await loadGroupFromDataURL(dataUrl, fileType);
+                    const partsInfo = extractPartsInfo(tempGroup);
+                    
+                    const newModel = {
+                        id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                        name: fileName,
+                        dataUrl: dataUrl,
+                        fileType: fileType,
+                        partsNames: partsInfo.map(p => p.name),
+                        timestamp: Date.now()
+                    };
+                    
+                    modelsLibrary.push(newModel);
+                    saveLibraryToStorage();
+                    updateModelsListUI();
+                    document.getElementById('modelsCount').innerHTML = modelsLibrary.length;
+                    
+                    await showModelById(newModel.id);
+                    
+                    document.getElementById('statusMsg').textContent = `✅ "${fileName}" сохранена!`;
+                    scene.remove(tempGroup);
+                    
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    document.getElementById('statusMsg').textContent = `❌ Ошибка файла`;
+                }
+            };
+            
+            reader.onerror = () => {
+                document.getElementById('statusMsg').textContent = `❌ Ошибка чтения`;
+            };
+            
+            reader.readAsDataURL(file);
+        }
+        
+        function deleteModel(modelId) {
+            if (confirm('Удалить модель из библиотеки?')) {
+                const index = modelsLibrary.findIndex(m => m.id === modelId);
+                if (index !== -1) {
+                    modelsLibrary.splice(index, 1);
+                    saveLibraryToStorage();
+                    updateModelsListUI();
+                    document.getElementById('modelsCount').innerHTML = modelsLibrary.length;
+                    
+                    if (currentModelId === modelId) {
+                        if (modelsLibrary.length > 0) {
+                            showModelById(modelsLibrary[0].id);
+                        } else {
+                            if (currentModelGroup) {
+                                scene.remove(currentModelGroup);
+                                currentModelGroup = null;
+                            }
+                            currentModelId = null;
+                            document.getElementById('currentModelName').textContent = 'Нет модели';
+                            document.getElementById('partsPanel').style.display = 'none';
+                            document.getElementById('statusMsg').textContent = 'Модель удалена';
+                        }
+                    }
+                }
+            }
+        }
+        
+        function clearAllModels() {
+            if (confirm('Удалить ВСЕ модели? Отменить нельзя.')) {
+                modelsLibrary = [];
+                localStorage.removeItem(STORAGE_KEY);
+                
+                if (currentModelGroup) {
+                    scene.remove(currentModelGroup);
+                    currentModelGroup = null;
+                }
+                currentModelId = null;
+                
+                updateModelsListUI();
+                document.getElementById('modelsCount').innerHTML = '0';
+                document.getElementById('currentModelName').textContent = 'Нет модели';
+                document.getElementById('partsPanel').style.display = 'none';
+                document.getElementById('statusMsg').textContent = 'Все модели удалены';
+                document.getElementById('showAllBtn').style.display = 'none';
+                document.getElementById('subModeInfo').innerHTML = '';
+                
+                controls.target.set(0, 0.5, 0);
+                camera.position.set(3, 2, 4);
+                controls.update();
+            }
+        }
+        
+        function updateModelsListUI() {
+            const container = document.getElementById('modelsListContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            modelsLibrary.forEach(model => {
+                const modelDiv = document.createElement('div');
+                modelDiv.className = 'model-item';
+                if (currentModelId === model.id) {
+                    modelDiv.classList.add('active');
+                }
+                const shortName = model.name.length > 22 ? model.name.substring(0, 19) + '...' : model.name;
+                modelDiv.innerHTML = `
+                    <span class="model-name">📦 ${shortName}</span>
+                    <span class="model-parts-count">${model.partsNames.length}</span>
+                    <button class="delete-model" data-id="${model.id}">✖</button>
+                `;
+                
+                modelDiv.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('delete-model')) {
+                        showModelById(model.id);
+                    }
+                });
+                
+                const deleteBtn = modelDiv.querySelector('.delete-model');
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteModel(model.id);
+                });
+                
+                container.appendChild(modelDiv);
+            });
+        }
+        
+        // --- Функции для работы с частями модели ---
+        function showOnlyPart(partMesh, partName) {
+            if (!currentModelGroup) return;
+            
+            // Если только одна часть - не делаем ничего (не переключаем модель!)
+            if (allParts.length <= 1) {
+                return;
+            }
+            
+            if (!soloMode) {
+                soloMode = true;
+            }
+            
+            // Скрываем все части, показываем только выбранную
+            allParts.forEach(part => {
+                part.mesh.visible = false;
+            });
+            partMesh.visible = true;
+            currentSoloPart = partMesh;
+            
+            setTimeout(() => {
+                const box = new THREE.Box3().setFromObject(partMesh);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const distance = maxDim * 1.4;
+                camera.position.set(x, y, z);
+                controls.target.copy(center);
+                controls.update();
+            }, 30);
+            
+            document.getElementById('subModeInfo').innerHTML = `🔍 "${partName.substring(0, 25)}"`;
+            document.getElementById('showAllBtn').style.display = 'inline-block';
+            updatePartsListUI(partName);
+            document.getElementById('statusMsg').textContent = `Часть: ${partName}`;
+        }
+        
+        function showAllParts() {
+            if (!currentModelGroup) return;
+            if (allParts.length <= 1) return;
+            
+            allParts.forEach(part => {
+                part.mesh.visible = true;
+            });
+            
+            soloMode = false;
+            currentSoloPart = null;
+            
+            const fullBox = new THREE.Box3().setFromObject(currentModelGroup);
+            const fullCenter = fullBox.getCenter(new THREE.Vector3());
+            const fullSize = fullBox.getSize(new THREE.Vector3());
+            const maxDim = Math.max(fullSize.x, fullSize.y, fullSize.z);
+            const distance = maxDim * 1.8;
+            
+            camera.position.set(fullCenter.x + distance * 0.8, fullCenter.y + distance * 0.6, fullCenter.z + distance);
+            controls.target.copy(fullCenter);
+            controls.update();
+            
+            document.getElementById('subModeInfo').innerHTML = '';
+            document.getElementById('showAllBtn').style.display = 'none';
+            updatePartsListUI(null);
+            document.getElementById('statusMsg').textContent = `Показана вся модель`;
+        }
+        
+        function updatePartsListUI(activePartName) {
+            const container = document.getElementById('partsContainer');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            if (allParts.length <= 1) {
+                document.getElementById('partsPanel').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('partsPanel').style.display = 'block';
+            
+            allParts.forEach((part) => {
+                const partItem = document.createElement('div');
+                partItem.className = 'part-item';
+                if (activePartName === part.originalName) {
+                    partItem.classList.add('active');
+                }
+                const shortName = part.originalName.length > 20 ? part.originalName.substring(0, 17) + '...' : part.originalName;
+                partItem.innerHTML = `${shortName}`;
+                partItem.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showOnlyPart(part.mesh, part.originalName);
+                });
+                container.appendChild(partItem);
+            });
+        }
+        
+        // Обработка клика по модели - ТОЛЬКО при прямом попадании в объект
+        function onClickModel(event) {
+            if (!currentModelGroup) return;
+            if (modelsLibrary.length === 0) return;
+            
+            // Получаем видимые в данный момент меши
+            const visibleMeshes = [];
+            allParts.forEach(part => {
+                if (part.mesh.visible) {
+                    visibleMeshes.push(part.mesh);
+                }
+            });
+            
+            if (visibleMeshes.length === 0) return;
+            
+            // Получаем координаты для тач-устройств и мыши
+            let clientX, clientY;
+            if (event.touches) {
+                clientX = event.touches[0].clientX;
+                clientY = event.touches[0].clientY;
+            } else {
+                clientX = event.clientX;
+                clientY = event.clientY;
+            }
+            
+            mouse.x = (clientX / renderer.domElement.clientWidth) * 2 - 1;
+            mouse.y = -(clientY / renderer.domElement.clientHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(visibleMeshes);
+            
+            // Если есть попадание в объект
+            if (intersects.length > 0) {
+                const clickedMesh = intersects[0].object;
+                const partData = allParts.find(p => p.mesh === clickedMesh);
+                if (partData) {
+                    // Если в модели больше одной части - показываем только эту часть
+                    if (allParts.length > 1) {
+                        showOnlyPart(clickedMesh, partData.originalName);
+                    } 
+                    // Если в модели всего одна часть - переключаем на следующую модель (только если кликнули именно по ней)
+                    else if (allParts.length === 1 && modelsLibrary.length > 1) {
+                        switchToNextModel();
+                    }
+                }
+            }
+            // Если кликнули в пустоту - НИЧЕГО НЕ ДЕЛАЕМ! Модель не переключается
+        }
+        
+        async function loadLibraryFromStorage() {
+            const savedData = localStorage.getItem(STORAGE_KEY);
+            if (!savedData) return false;
+            
+            try {
+                const savedModels = JSON.parse(savedData);
+                if (!savedModels.length) return false;
+                
+                modelsLibrary = savedModels;
+                updateModelsListUI();
+                document.getElementById('modelsCount').innerHTML = modelsLibrary.length;
+                
+                if (modelsLibrary.length > 0) {
+                    await showModelById(modelsLibrary[0].id);
+                }
+                
+                document.getElementById('statusMsg').textContent = `📚 ${modelsLibrary.length} моделей`;
+                return true;
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                localStorage.removeItem(STORAGE_KEY);
+                return false;
+            }
+        }
+        
+        // --- Обработчики событий ---
+        const fileInput = document.getElementById('fileInput');
+        fileInput.addEventListener('change', (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            if (file.name.endsWith('.glb') || file.name.endsWith('.gltf')) {
+                addModelFromFile(file);
+            } else {
+                document.getElementById('statusMsg').textContent = `⚠️ Нужен .glb/.gltf`;
+            }
+            fileInput.value = '';
+        });
+        
+        document.getElementById('resetViewBtn').addEventListener('click', () => {
+            if (currentModelGroup) {
+                const box = new THREE.Box3().setFromObject(currentModelGroup);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const distance = maxDim * 1.8;
+                camera.position.set(center.x + distance * 0.8, center.y + distance * 0.6, center.z + distance);
+                controls.target.copy(center);
+                controls.update();
+                document.getElementById('statusMsg').textContent = '🎥 Вид сброшен';
+            } else {
+                controls.target.set(0, 0.5, 0);
+                camera.position.set(3, 2, 4);
+                controls.update();
+            }
+        });
+        
+        document.getElementById('showAllBtn').addEventListener('click', showAllParts);
+        document.getElementById('backToFullBtn').addEventListener('click', showAllParts);
+        document.getElementById('clearAllBtn').addEventListener('click', clearAllModels);
+        
+        // Поддержка мыши и тач-событий (с предотвращением двойного срабатывания)
+        renderer.domElement.addEventListener('click', onClickModel);
+        
+        let touchTimeout = null;
+        renderer.domElement.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (touchTimeout) clearTimeout(touchTimeout);
+            touchTimeout = setTimeout(() => {
+                if (e.changedTouches && e.changedTouches.length > 0) {
+                    const touchEvent = new MouseEvent('click', {
+                        clientX: e.changedTouches[0].clientX,
+                        clientY: e.changedTouches[0].clientY
+                    });
+                    onClickModel(touchEvent);
+                }
+                touchTimeout = null;
+            }, 10);
+        });
+        
+        // Drag & Drop
+        document.body.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+        });
+        document.body.addEventListener('drop', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.name.endsWith('.glb') || file.name.endsWith('.gltf')) {
+                    addModelFromFile(file);
+                } else {
+                    document.getElementById('statusMsg').textContent = '⚠️ Перетащите .glb/.gltf';
+                }
+            }
+        });
+        
+        // --- Анимация ---
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+        animate();
+        
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        // Запуск
+        loadLibraryFromStorage().then(loaded => {
+            if (!loaded && modelsLibrary.length === 0) {
+                document.getElementById('statusMsg').textContent = '📁 Добавьте модель';
+            }
+        });
+    </script>
+</body>
+</html>
